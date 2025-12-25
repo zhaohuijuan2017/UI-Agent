@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 日志和截图
+logs/
+*.log
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# 配置文件中的敏感信息
+.env
+.env.local
+*.key
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 类型检查
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 代码格式化
+.ruff_cache/
+
+# 操作系统
+.DS_Store
+Thumbs.db

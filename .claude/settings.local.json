@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m src.main:*)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" timeout 10 python:*)",
+      "Bash(python:*)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m src.main \"双击 main.py\")"
+    ]
+  }
+}

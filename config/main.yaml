@@ -1,0 +1,34 @@
+# UI-Agent 主配置文件
+
+system:
+  log_level: INFO
+  log_file: logs/ide_controller.log
+  screenshot_dir: screenshots/
+
+ide:
+  name: pycharm
+  config_path: config/operations/pycharm.yaml
+
+api:
+  zhipuai:
+    api_key: 34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O
+    model: GLM-4.6V-Flash
+    timeout: 30
+
+automation:
+  default_timeout: 5.0
+  max_retries: 3
+  retry_delay: 1.0
+  action_delay: 0.2
+  # 坐标校准偏移量 [x_offset, y_offset]
+  # 用于校正视觉定位返回的坐标偏差
+  # 例如：如果实际位置比视觉定位的位置偏右 36 像素、偏下 46 像素，则设置为 [36, 46]
+  coordinate_offset: [36, 46]
+
+safety:
+  dangerous_operations:
+    - delete_file
+    - delete_folder
+    - git_reset
+  require_confirmation: true
+  enable_undo: true

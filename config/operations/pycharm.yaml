@@ -1,0 +1,341 @@
+# PyCharm IDE 操作配置
+
+ide: pycharm
+version: ">=2023.2"
+
+operations:
+  # 文件操作
+  - name: double_click_file
+    aliases: [双击文件, double click file, 双击]
+    intent: file_operation
+    description: 双击指定关键字所在的 UI 元素（文件树节点、按钮等）
+
+    visual_prompt: |
+      在截图中精确定位包含文本 "{filename}" 的 UI 元素。
+
+      坐标系统说明：
+      - 截图左上角为 (0, 0)
+      - x 轴向右递增，y 轴向下递增
+      - bbox 格式为 [x1, y1, x2, y2]，其中 (x1,y1) 是左上角，(x2,y2) 是右下角
+
+      定位要求：
+      1. 仔细查找包含精确文本 "{filename}" 的元素
+      2. 该元素可能在：文件树、标签页、按钮、列表等位置
+      3. 边界框必须紧密包裹该元素的实际可见区域
+      4. 请多次确认坐标的准确性
+
+      返回格式：
+      - element_type: 元素类型
+      - description: 元素描述（禁止使用双引号，文本用单引号）
+      - bbox: 精确的边界框坐标 [x1, y1, x2, y2]
+      - confidence: 定位置信度（0-1）
+
+    actions:
+      - type: double_click
+        target: "0"  # 使用视觉定位返回的第一个元素（目标元素）
+        timeout: 1.0
+
+    requires_confirmation: false
+
+  - name: open_file
+    aliases: [打开文件, open file, 打开]
+    intent: file_operation
+    description: 在 PyCharm 中打开指定文件
+
+    visual_prompt: |
+      在截图中找到以下元素：
+      1. 项目工具窗口中的文件树
+      2. 目标文件：{filename}
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "shift", "a"]
+        timeout: 1.0
+
+      - type: type
+        text: "Open File"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+      - type: type
+        text: "{filename}"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+    post_check:
+      type: verify_file_opened
+      filename: "{filename}"
+
+  - name: save_file
+    aliases: [保存文件, save file, 保存]
+    intent: file_operation
+    description: 保存当前文件
+
+    visual_prompt: |
+      在截图中找到当前编辑器窗口
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "s"]
+        timeout: 1.0
+
+  - name: close_file
+    aliases: [关闭文件, close file, 关闭]
+    intent: file_operation
+    description: 关闭当前文件
+
+    visual_prompt: |
+      在截图中找到当前编辑器窗口
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "f4"]
+        timeout: 1.0
+
+  - name: new_file
+    aliases: [新建文件, new file, 新建]
+    intent: file_operation
+    description: 创建新文件
+
+    actions:
+      - type: shortcut
+        keys: ["alt", "f"]
+        timeout: 1.0
+
+      - type: wait_for_dialog
+        dialog_title: "New"
+
+      - type: type
+        text: "{filename}"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+  # 导航操作
+  - name: go_to_line
+    aliases: [跳转到行, go to line, 跳转]
+    intent: navigation
+    description: 跳转到指定行
+
+    visual_prompt: |
+      在截图中找到当前编辑器窗口
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "g"]
+        timeout: 1.0
+
+      - type: wait_for_dialog
+        dialog_title: "Go to Line"
+
+      - type: type
+        text: "{line_number}"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+  - name: find_file
+    aliases: [查找文件, find file, 搜索文件]
+    intent: navigation
+    description: 在项目中查找文件
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "shift", "n"]
+        timeout: 1.0
+
+      - type: wait_for_dialog
+        dialog_title: "Navigate to File"
+
+      - type: type
+        text: "{filename}"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+  # 重构操作
+  - name: rename_symbol
+    aliases: [重命名, rename, refactor_rename]
+    intent: refactor
+    description: 重命名当前光标位置的符号
+
+    visual_prompt: |
+      在截图中找到：
+      1. 当前编辑器中光标位置
+      2. 确认光标在符号上
+
+    actions:
+      - type: shortcut
+        keys: ["shift", "f6"]
+        timeout: 1.0
+
+      - type: wait_for_dialog
+        dialog_title: "Rename"
+
+      - type: type
+        text: "{new_name}"
+        delay: 0.1
+
+      - type: shortcut
+        keys: ["enter"]
+        timeout: 1.0
+
+    requires_confirmation: true
+    risk_level: medium
+
+  - name: format_code
+    aliases: [格式化, format code, 格式化代码]
+    intent: refactor
+    description: 格式化当前文件代码
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "alt", "l"]
+        timeout: 2.0
+
+  - name: extract_method
+    aliases: [提取方法, extract method]
+    intent: refactor
+    description: 提取选中的代码为方法
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "alt", "m"]
+        timeout: 1.0
+
+    requires_confirmation: true
+    risk_level: medium
+
+  # 运行操作
+  - name: run_current_file
+    aliases: [运行当前文件, run, 运行]
+    intent: run
+    description: 运行当前文件
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "shift", "f10"]
+        timeout: 2.0
+
+  - name: debug_current_file
+    aliases: [调试, debug, 调试当前文件]
+    intent: run
+    description: 调试当前文件
+
+    actions:
+      - type: shortcut
+        keys: ["shift", "f9"]
+        timeout: 2.0
+
+  - name: stop_run
+    aliases: [停止运行, stop, 停止]
+    intent: run
+    description: 停止当前运行
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "f2"]
+        timeout: 1.0
+
+  # 编辑操作
+  - name: copy_line
+    aliases: [复制行, copy line]
+    intent: edit
+    description: 复制当前行
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "d"]
+        timeout: 0.5
+
+  - name: delete_line
+    aliases: [删除行, delete line]
+    intent: edit
+    description: 删除当前行
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "y"]
+        timeout: 0.5
+
+  - name: undo
+    aliases: [撤销, undo]
+    intent: edit
+    description: 撤销上一步操作
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "z"]
+        timeout: 0.5
+
+  - name: redo
+    aliases: [重做, redo]
+    intent: edit
+    description: 重做操作
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "shift", "z"]
+        timeout: 0.5
+
+  # 搜索操作
+  - name: find_in_file
+    aliases: [在文件中查找, find, 查找]
+    intent: search
+    description: 在当前文件中查找文本
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "f"]
+        timeout: 1.0
+
+      - type: type
+        text: "{search_text}"
+        delay: 0.1
+
+  - name: find_in_project
+    aliases: [在项目中查找, find in project, 全局搜索]
+    intent: search
+    description: 在整个项目中查找
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "shift", "f"]
+        timeout: 1.0
+
+      - type: type
+        text: "{search_text}"
+        delay: 0.1
+
+  # 其他操作
+  - name: toggle_comment
+    aliases: [切换注释, toggle comment, 注释]
+    intent: edit
+    description: 注释/取消注释当前行
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "/"]
+        timeout: 0.5
+
+  - name: optimize_imports
+    aliases: [优化导入, optimize imports]
+    intent: refactor
+    description: 优化和删除未使用的导入
+
+    actions:
+      - type: shortcut
+        keys: ["ctrl", "alt", "o"]
+        timeout: 2.0
