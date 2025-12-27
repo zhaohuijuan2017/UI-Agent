@@ -8,6 +8,7 @@ from src.window.exceptions import WindowActivationError, WindowNotFoundError
 from src.window.window_manager import WindowManager
 
 
+@pytest.mark.unit
 class TestWindowManager:
     """窗口管理器测试类。"""
 

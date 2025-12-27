@@ -491,3 +491,29 @@ operations:
     actions: []
 
     requires_confirmation: false
+
+  # 工作流操作
+  - name: execute_workflow
+    aliases: [执行工作流, 运行工作流, 运行步骤, 执行脚本, 工作流, workflow, execute workflow, run workflow]
+    intent: workflow
+    description: 执行工作流文件（Markdown 格式）
+
+    # 工作流参数
+    # workflow_file: 工作流文件路径（必需）
+    # dry_run: 是否仅验证不执行（可选，默认 false）
+
+    actions: []  # 工作流操作由 IDEController 内部处理
+
+    requires_confirmation: false
+
+  - name: validate_workflow
+    aliases: [验证工作流, 验证步骤, validate workflow, check workflow]
+    intent: workflow
+    description: 验证工作流文件格式是否正确
+
+    # 工作流验证参数
+    # workflow_file: 工作流文件路径（必需）
+
+    actions: []  # 工作流验证由 IDEController 内部处理
+
+    requires_confirmation: false

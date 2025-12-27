@@ -67,6 +67,8 @@ def print_help() -> None:
     print("\n命令行选项:")
     print("  --debug, --verbose, -v  - 启用调试日志")
     print("  --template <文件名>      - 指定模板图片")
+    print("  --workflow <文件名>      - 执行工作流文件")
+    print("  --dry-run                - 验证工作流但不执行")
     print()
 
 
@@ -114,6 +116,8 @@ def main() -> int:
         args = sys.argv[1:]
         command_parts = []
         template_name = None
+        workflow_file = None
+        dry_run = False
 
         i = 0
         while i < len(args):
@@ -123,9 +127,33 @@ def main() -> int:
             elif args[i] == "--template" and i + 1 < len(args):
                 template_name = args[i + 1]
                 i += 2
+            elif args[i] == "--workflow" and i + 1 < len(args):
+                workflow_file = args[i + 1]
+                i += 2
+            elif args[i] == "--dry-run":
+                dry_run = True
+                i += 1
             else:
                 command_parts.append(args[i])
                 i += 1
+
+        # 如果指定了工作流文件，执行工作流
+        if workflow_file:
+            result = controller.execute_workflow_file(workflow_file, dry_run=dry_run)
+            if result.success:
+                print(f"\n{result.message}")
+                if result.duration_ms > 0:
+                    print(f"耗时: {result.duration_ms}ms")
+                return 0
+            else:
+                print(f"\n错误: {result.message}")
+                if result.error:
+                    try:
+                        print(f"详情: {result.error}")
+                    except UnicodeEncodeError:
+                        error_clean = ''.join(c for c in str(result.error) if c.isprintable() or c.isspace())
+                        print(f"详情: {error_clean}")
+                return 1
 
         command = " ".join(command_parts)
         result = controller.execute_command(command, template_name=template_name)

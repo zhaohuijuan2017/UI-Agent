@@ -17,7 +17,13 @@
       "Skill(openspec:apply)",
       "Bash(pip install:*)",
       "Bash(openspec-cn archive open-browser-with-url:*)",
-      "Skill(openspec:proposal)"
+      "Skill(openspec:proposal)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m pytest tests/unit/test_workflow_*.py -v)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m ruff check src/workflow/)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m black:*)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m ruff check:*)",
+      "Bash(ZHIPUAI_API_KEY=\"34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O\" python -m ruff:*)",
+      "Bash(grep:*)"
     ]
   }
 }

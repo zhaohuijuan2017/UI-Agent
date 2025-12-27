@@ -12,6 +12,7 @@ from src.browser.exceptions import (
 )
 
 
+@pytest.mark.unit
 class TestBrowserLauncher:
     """浏览器启动器测试类。"""
 

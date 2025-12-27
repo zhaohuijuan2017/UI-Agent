@@ -9,6 +9,11 @@
 - **窗口管理功能**：激活、切换窗口，支持多种 IDE
 - **浏览器启动功能**：打开浏览器并访问指定网址
 - **浏览器自动化功能**：点击、滚动、输入文本、按键操作
+- **工作流执行功能**：通过 Markdown 文档定义多步骤操作流程
+  - 支持串行执行步骤
+  - 支持条件分支（if_success、if_failure）
+  - 支持可配置重试机制
+  - 支持混合格式（自然语言 + YAML 配置）
 - 跨平台 GUI 自动化操作执行
 - 可扩展的 IDE 操作配置系统
 - 完善的安全机制和错误恢复
@@ -50,6 +55,12 @@ python -m src.main
 # 执行单条命令
 python -m src.main "在 终端 下方的输入框中输入 python --version 并回车"
 python -m src.main "双击 implement-nl-ide-control"
+
+# 执行工作流文件
+python -m src.main --workflow workflows/simple-example.md
+
+# 验证工作流（不执行）
+python -m src.main --workflow workflows/simple-example.md --dry-run
 ```
 
 ## 支持的命令
@@ -63,6 +74,60 @@ python -m src.main "双击 implement-nl-ide-control"
 - **编辑操作**：重命名符号、提取方法、格式化代码
 - **导航操作**：跳转到行、查找文件、查找符号
 - **运行操作**：运行当前文件、调试程序、运行测试
+
+## 工作流功能
+
+工作流允许你通过 Markdown 文档定义多步骤操作流程，自动按顺序执行。
+
+### 工作流文档格式
+
+```markdown
+---
+name: "工作流名称"
+description: "工作流描述"
+variables:
+  url: "https://example.com"
+---
+
+# 工作流标题
+
+## 步骤
+
+1. 激活 PyCharm 窗口
+
+2. 打开文件 main.py
+
+   ```yaml
+   operation: double_click_file
+   parameters:
+     filename: "main.py"
+   retry_count: 2
+   ```
+
+3. [if_success] 跳转到第 42 行
+
+4. [if_failure] 显示错误提示
+   ```yaml
+   continue_on_error: true
+   ```
+```
+
+### 工作流特性
+
+- **条件分支**：使用 `[if_success]` 或 `[if_failure]` 标记条件步骤
+- **重试机制**：在 YAML 配置中设置 `retry_count` 和 `retry_interval`
+- **错误处理**：使用 `continue_on_error` 控制失败时的行为
+- **混合格式**：纯自然语言或 YAML 配置，灵活选择
+
+### 执行工作流
+
+```bash
+# 执行工作流
+python -m src.main --workflow workflows/simple-example.md
+
+# 验证工作流（不实际执行）
+python -m src.main --workflow workflows/simple-example.md --dry-run
+```
 
 示例：
 ```
@@ -186,12 +251,15 @@ ui-agent/
 │   ├── infrastructure/   # 基础设施
 │   ├── window/           # 窗口管理
 │   ├── browser/          # 浏览器启动与自动化
-│   │   ├── automation.py      # 浏览器自动化控制器
-│   │   ├── browser_launcher.py # 浏览器启动器
-│   │   ├── exceptions.py       # 浏览器相关异常
-│   │   └── locators/          # 元素定位器
+│   ├── workflow/         # 工作流执行
+│   │   ├── models.py         # 数据模型
+│   │   ├── parser.py         # Markdown 解析器
+│   │   ├── executor.py       # 执行器
+│   │   ├── validator.py      # 验证器
+│   │   └── exceptions.py     # 异常类
 │   └── models/           # 数据模型
 ├── config/               # 配置文件
+├── workflows/            # 工作流示例
 ├── tests/                # 测试
 │   ├── unit/             # 单元测试
 │   └── integration/      # 集成测试

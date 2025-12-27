@@ -22,6 +22,10 @@ from src.browser.exceptions import (
 )
 from src.window.exceptions import WindowActivationError, WindowNotFoundError
 from src.window.window_manager import WindowManager
+from src.workflow.executor import WorkflowExecutor
+from src.workflow.parser import WorkflowParser
+from src.workflow.validator import WorkflowValidator
+from src.workflow.exceptions import WorkflowError
 
 
 class IDEController:
@@ -88,6 +92,13 @@ class IDEController:
         # 初始化浏览器自动化控制器（惰性初始化）
         self._browser_automation: BrowserAutomation | None = None
 
+        # 初始化工作流模块
+        self._workflow_parser = WorkflowParser()
+        # 获取所有可用操作用于验证
+        available_operations = {op.name for op in self.config.ide.operations}
+        self._workflow_validator = WorkflowValidator(available_operations)
+        self._workflow_executor: WorkflowExecutor | None = None
+
         # 上下文
         self._context: dict[str, Any] = {
             "current_file": None,
@@ -141,7 +152,7 @@ class IDEController:
                 if op_config.name == "activate_window":
                     # 尝试从命令中提取窗口标题
                     # 如果命令包含 "切换到 XXX" 或 "激活 XXX"，则提取 XXX 作为窗口标题
-                    window_title = "PyCharm"  # 默认值
+                    window_title = None  # 默认为 None，表示未提取到
 
                     # 尝试从命令中提取窗口标题
                     # 命令格式: "切换到微信窗口" -> 提取 "微信"
@@ -161,16 +172,25 @@ class IDEController:
                             window_title = match.group(1).strip()
                             break
 
+                    # 如果没有提取到窗口标题，使用默认值
+                    if not window_title:
+                        window_title = "PyCharm"
+
                     # 检查是否是已知的应用，优先使用进程名匹配
                     # 先去除窗口标题两端的空格
                     window_title = window_title.strip()
 
                     # 清理常见的后缀词
                     suffixes_to_remove = ["浏览器", "窗口", "软件", "程序", "应用"]
+                    original_title = window_title
                     for suffix in suffixes_to_remove:
                         if window_title.endswith(suffix):
                             window_title = window_title[: -len(suffix)].strip()
                             break
+
+                    # 如果清理后为空，使用原始标题
+                    if not window_title:
+                        window_title = original_title
 
                     result = self._activate_by_application_name(window_title)
                     duration_ms = int((time.time() - start_time) * 1000)
@@ -642,10 +662,17 @@ class IDEController:
         """
         try:
             success = self._window_manager.activate_by_process(process_name)
-            return ExecutionResult(
-                status=ExecutionStatus.SUCCESS,
-                message=f"已激活进程窗口: {process_name}",
-            )
+            if success:
+                return ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    message=f"已激活进程窗口: {process_name}",
+                )
+            else:
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    message=f"无法激活进程窗口: {process_name}",
+                    error="进程可能不存在或窗口不可见",
+                )
         except WindowNotFoundError as e:
             return ExecutionResult(
                 status=ExecutionStatus.FAILED,
@@ -881,4 +908,116 @@ class IDEController:
                 status=ExecutionStatus.FAILED,
                 message="浏览器自动化操作失败",
                 error=f"{error_msg}\n\n请确保浏览器已打开正确的页面。",
+            )
+
+    def execute_workflow_file(
+        self, path: str, dry_run: bool = False
+    ) -> ExecutionResult:
+        """执行工作流文件。
+
+        Args:
+            path: 工作流文件路径
+            dry_run: 是否仅验证不执行
+
+        Returns:
+            执行结果
+        """
+        try:
+            start_time = time.time()
+
+            # 解析工作流文件
+            config = self._workflow_parser.parse_file(path)
+
+            # 验证工作流配置
+            errors = self._workflow_validator.validate(config)
+            if errors:
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    message="工作流验证失败",
+                    error="\n".join(errors),
+                )
+
+            # 初始化工作流执行器（惰性初始化）
+            if self._workflow_executor is None:
+                self._workflow_executor = WorkflowExecutor(self)
+
+            # 执行工作流
+            result = self._workflow_executor.execute(config, dry_run=dry_run)
+
+            duration_ms = int((time.time() - start_time) * 1000)
+
+            if result.success:
+                return ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    message=f"工作流执行成功: {config.name}",
+                    data={
+                        "workflow_name": result.workflow_name,
+                        "completed_steps": result.completed_steps,
+                        "total_steps": result.total_steps,
+                        "duration": result.duration,
+                    },
+                    duration_ms=duration_ms,
+                )
+            else:
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    message=f"工作流执行失败: {result.error_message}",
+                    error=result.error_message,
+                    data={
+                        "workflow_name": result.workflow_name,
+                        "failed_step": result.failed_step,
+                        "completed_steps": result.completed_steps,
+                    },
+                    duration_ms=duration_ms,
+                )
+
+        except WorkflowError as e:
+            return ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                message="工作流执行失败",
+                error=str(e),
+            )
+        except Exception as e:
+            return ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                message="工作流执行异常",
+                error=str(e),
+            )
+
+    def validate_workflow_file(self, path: str) -> ExecutionResult:
+        """验证工作流文件。
+
+        Args:
+            path: 工作流文件路径
+
+        Returns:
+            验证结果
+        """
+        try:
+            # 解析工作流文件
+            config = self._workflow_parser.parse_file(path)
+
+            # 验证工作流配置
+            errors = self._workflow_validator.validate(config)
+            if errors:
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    message="工作流验证失败",
+                    error="\n".join(errors),
+                )
+
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                message=f"工作流验证通过: {config.name}",
+                data={
+                    "workflow_name": config.name,
+                    "step_count": len(config.steps),
+                },
+            )
+
+        except WorkflowError as e:
+            return ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                message="工作流验证失败",
+                error=str(e),
             )
