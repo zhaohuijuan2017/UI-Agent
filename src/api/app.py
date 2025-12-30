@@ -91,7 +91,15 @@ def init_controller() -> IDEController:
     if not api_key:
         raise ValueError("请设置 ZHIPUAI_API_KEY 环境变量或在配置文件中配置")
 
-    return IDEController(config_path, api_key)
+    controller = IDEController(config_path, api_key)
+
+    # 打印配置信息
+    if controller.config.api.base_url:
+        logger.info(f"使用自定义 LLM API: {controller.config.api.base_url}")
+    else:
+        logger.info("使用官方 LLM API")
+
+    return controller
 
 
 @app.get("/")

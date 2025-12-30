@@ -24,6 +24,7 @@ class IntentRecognizer:
         llm_client: ZhipuAI | None = None,
         llm_model: str = "glm-4-flash",
         confidence_threshold: float = 0.85,
+        base_url: str | None = None,
     ):
         """初始化意图识别器。
 
@@ -32,7 +33,14 @@ class IntentRecognizer:
             llm_client: LLM 客户端（可选，默认创建新的 ZhipuAI 客户端）
             llm_model: 使用的 LLM 模型名称
             confidence_threshold: 置信度阈值
+            base_url: LLM API Base URL（可选，用于自定义代理）
         """
+        # 如果提供了 base_url 且没有提供客户端，则创建带 base_url 的客户端
+        if base_url and llm_client is None:
+            # 需要从外部传入 api_key，这里保持向后兼容
+            # 实际使用时应该通过 llm_client 参数传入已配置的客户端
+            logger.warning(f"base_url 已设置但未传入 llm_client，请使用已配置 base_url 的客户端")
+
         self.llm_client = llm_client
         self.llm_model = llm_model
         self.confidence_threshold = confidence_threshold

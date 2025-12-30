@@ -73,6 +73,7 @@ class VisualLocator:
         model: str = "glm-4v-flash",
         screenshot_capture: ScreenshotCapture | None = None,
         vision_enabled: bool = True,
+        base_url: str | None = None,
     ) -> None:
         """初始化视觉定位器。
 
@@ -81,8 +82,13 @@ class VisualLocator:
             model: 使用的模型名称
             screenshot_capture: 截图捕获器（可选）
             vision_enabled: 是否启用大模型视觉识别（默认 True）
+            base_url: LLM API Base URL（可选，用于自定义代理）
         """
-        self.client = ZhipuAI(api_key=api_key)
+        # 初始化 LLM 客户端（支持自定义 base_url）
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        self.client = ZhipuAI(**client_kwargs)
         self.model = model
         self.screenshot_capture = screenshot_capture
         self._vision_enabled = vision_enabled

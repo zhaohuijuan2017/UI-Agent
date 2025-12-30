@@ -42,11 +42,15 @@ class IDEController:
         self.config_manager = ConfigManager(config_path)
         self.config: MainConfig = self.config_manager.load_config()
 
+        # 获取 base_url（如果配置了）
+        base_url = self.config.api.base_url
+
         # 初始化各模块
         self.parser = CommandParser(
             config_manager=self.config_manager,
             api_key=api_key,
             model=self.config.api.model,
+            base_url=base_url,
         )
 
         self.screenshot = ScreenshotCapture(self.config.system)
@@ -55,6 +59,7 @@ class IDEController:
             model=self.config.api.model,
             screenshot_capture=self.screenshot,
             vision_enabled=self.config.vision.enabled,
+            base_url=base_url,
         )
 
         # 初始化模板匹配器
@@ -114,8 +119,12 @@ class IDEController:
             from src.orchestration.orchestrator import TaskOrchestrator
             from src.orchestration.adapters import BrowserSystemAdapter, IDESystemAdapter
 
-            # 初始化 LLM 客户端
-            llm_client = ZhipuAI(api_key=api_key)
+            # 初始化 LLM 客户端（支持自定义 base_url）
+            llm_kwargs = {"api_key": api_key}
+            if self.config.api.base_url:
+                llm_kwargs["base_url"] = self.config.api.base_url
+                print(f"[初始化] 使用自定义 LLM API: {self.config.api.base_url}")
+            llm_client = ZhipuAI(**llm_kwargs)
 
             # 初始化意图识别器
             intent_definitions_path = "config/intent_definitions.yaml"

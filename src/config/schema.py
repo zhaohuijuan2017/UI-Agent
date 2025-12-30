@@ -89,6 +89,8 @@ class APIConfig:
     zhipuai_api_key: str
     model: str = "glm-4v-flash"
     timeout: int = 30
+    # LLM API Base URL（可选，用于自定义代理或兼容接口）
+    base_url: str | None = None
 
 
 @dataclass

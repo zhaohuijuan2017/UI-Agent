@@ -19,6 +19,7 @@ class CommandParser:
         config_manager: ConfigManager,
         api_key: str,
         model: str = "glm-4-flash",
+        base_url: str | None = None,
     ) -> None:
         """初始化命令解析器。
 
@@ -26,9 +27,16 @@ class CommandParser:
             config_manager: 配置管理器
             api_key: 智谱 AI API Key
             model: 使用的模型名称
+            base_url: LLM API Base URL（可选，用于自定义代理）
         """
         self.config = config_manager
-        self.client = ZhipuAI(api_key=api_key) if api_key else None
+        if api_key:
+            client_kwargs = {"api_key": api_key}
+            if base_url:
+                client_kwargs["base_url"] = base_url
+            self.client = ZhipuAI(**client_kwargs)
+        else:
+            self.client = None
         self.model = model
 
     def parse(self, text: str, context: dict[str, Any] | None = None) -> ParsedCommand:

@@ -14,6 +14,13 @@ api:
     api_key: 34eeadd155244053894ffadb2c1999a4.vu8hn2jUQdoGzJ9O
     model: GLM-4.6V-Flash
     timeout: 30
+    # LLM API Base URL（可选）
+    # 留空使用官方 API，或设置自定义代理/兼容接口地址
+    # 示例:
+    #   - 官方: 留空
+    #   - 自定义代理: "http://localhost:8080/v1"
+    #   - OpenAI 兼容: "https://api.openai.com/v1"
+    base_url: null
 
 automation:
   default_timeout: 5.0

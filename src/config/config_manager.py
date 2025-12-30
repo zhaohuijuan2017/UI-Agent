@@ -234,6 +234,7 @@ class ConfigManager:
                 zhipuai_api_key=api_data.get("zhipuai", {}).get("api_key", ""),
                 model=api_data.get("zhipuai", {}).get("model", "glm-4v-flash"),
                 timeout=api_data.get("zhipuai", {}).get("timeout", 30),
+                base_url=api_data.get("zhipuai", {}).get("base_url"),
             ),
             automation=AutomationConfig(**automation_data),
             safety=SafetyConfig(**safety_data),
