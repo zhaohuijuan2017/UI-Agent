@@ -99,8 +99,8 @@ class BrowserSystemAdapter:
             if self.ide and self.ide._browser_launcher:
                 try:
                     # 启动默认浏览器并打开 URL
-                    import webbrowser
                     import time
+                    import webbrowser
 
                     webbrowser.open(url)
                     time.sleep(1)  # 等待浏览器启动
@@ -117,9 +117,7 @@ class BrowserSystemAdapter:
 
         # 最终回退：只记录成功（不实际打开）
         logger.warning(f"浏览器自动化未初始化，仅记录 URL: {url}")
-        return StepExecutionResult(
-            step_index=0, success=True, output={"url": url, "opened": False}
-        )
+        return StepExecutionResult(step_index=0, success=True, output={"url": url, "opened": False})
 
     def _extract_content(self, params: dict[str, Any]) -> StepExecutionResult:
         """提取页面内容。"""
@@ -135,9 +133,7 @@ class BrowserSystemAdapter:
                 pass
             except Exception as e:
                 logger.error(f"提取页面内容失败: {e}")
-                return StepExecutionResult(
-                    step_index=0, success=False, error=f"提取内容失败: {e}"
-                )
+                return StepExecutionResult(step_index=0, success=False, error=f"提取内容失败: {e}")
 
         # 回退：返回占位符内容
         return StepExecutionResult(

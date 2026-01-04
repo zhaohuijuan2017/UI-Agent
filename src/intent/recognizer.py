@@ -39,7 +39,7 @@ class IntentRecognizer:
         if base_url and llm_client is None:
             # 需要从外部传入 api_key，这里保持向后兼容
             # 实际使用时应该通过 llm_client 参数传入已配置的客户端
-            logger.warning(f"base_url 已设置但未传入 llm_client，请使用已配置 base_url 的客户端")
+            logger.warning("base_url 已设置但未传入 llm_client，请使用已配置 base_url 的客户端")
 
         self.llm_client = llm_client
         self.llm_model = llm_model
@@ -117,19 +117,29 @@ class IntentRecognizer:
         Returns:
             意图匹配结果
         """
+        logger.info("=" * 50)
+        logger.info(f"[意图识别开始] 输入消息: {message}")
+        logger.info("=" * 50)
+
         if not self.llm_client:
-            logger.error("LLM 客户端未配置")
+            logger.error("[意图识别失败] LLM 客户端未配置")
             return IntentMatchResult(intent=None, confidence=0.0)
 
         if not self._intent_definitions:
-            logger.warning("没有可用的意图定义")
+            logger.warning("[意图识别失败] 没有可用的意图定义")
             return IntentMatchResult(intent=None, confidence=0.0)
+
+        logger.debug(f"[意图识别] 可用意图类型: {list(self._intent_definitions.keys())}")
+        logger.debug(f"[意图识别] 使用模型: {self.llm_model}")
+        logger.debug(f"[意图识别] 置信度阈值: {self.confidence_threshold}")
 
         try:
             # 构建提示词
             prompt = self._build_intent_prompt(message)
+            logger.debug(f"[意图识别] 构建的提示词长度: {len(prompt)} 字符")
 
             # 调用 LLM
+            logger.info("[意图识别] 正在调用 LLM 进行意图分析...")
             response = self.llm_client.chat.completions.create(
                 model=self.llm_model,
                 messages=[
@@ -142,14 +152,16 @@ class IntentRecognizer:
                 ],
                 temperature=0.1,  # 降低温度以获得更确定的结果
             )
+            logger.info("[意图识别] LLM 调用完成")
 
             # 解析响应
             response_text = response.choices[0].message.content.strip()
-            logger.debug(f"LLM 响应: {response_text}")
+            logger.debug(f"[意图识别] LLM 原始响应: {response_text}")
 
             # 提取 JSON（处理可能的 markdown 代码块）
             json_text = self._extract_json(response_text)
             result_data = json.loads(json_text)
+            logger.debug(f"[意图识别] 解析后的数据: {result_data}")
 
             # 创建意图对象
             intent = Intent(
@@ -162,16 +174,36 @@ class IntentRecognizer:
 
             # 检查意图是否有效
             if intent.type == "unknown" or intent.type not in self._intent_definitions:
-                logger.warning(f"未知的意图类型: {intent.type}")
+                logger.warning(f"[意图识别失败] 未知的意图类型: {intent.type}")
                 return IntentMatchResult(intent=None, confidence=0.0)
+
+            # 记录识别结果
+            logger.info(f"[意图识别成功] 识别到意图: {intent.type}")
+            logger.info(f"[意图识别] 置信度: {intent.confidence:.2f}")
+            logger.info(f"[意图识别] 提取的参数: {intent.parameters}")
+            if intent.reasoning:
+                logger.info(f"[意图识别] 识别理由: {intent.reasoning}")
+
+            # 检查置信度是否满足阈值
+            if intent.confidence < self.confidence_threshold:
+                logger.warning(
+                    f"[意图识别] 置信度低于阈值 ({intent.confidence:.2f} < {self.confidence_threshold})"
+                )
+
+            logger.info("=" * 50)
+            logger.info(f"[意图识别完成] 最终结果: {intent.type} (置信度: {intent.confidence:.2f})")
+            logger.info("=" * 50)
 
             return IntentMatchResult(intent=intent, confidence=intent.confidence)
 
         except json.JSONDecodeError as e:
-            logger.error(f"解析 LLM 响应失败: {e}")
+            logger.error(f"[意图识别失败] 解析 LLM 响应失败: {e}")
+            logger.debug(
+                f"[意图识别] 失败的响应文本: {response_text if 'response_text' in locals() else 'N/A'}"
+            )
             return IntentMatchResult(intent=None, confidence=0.0)
         except Exception as e:
-            logger.error(f"意图识别失败: {e}")
+            logger.error(f"[意图识别失败] 意图识别异常: {e}", exc_info=True)
             return IntentMatchResult(intent=None, confidence=0.0)
 
     def _build_intent_prompt(self, message: str) -> str:

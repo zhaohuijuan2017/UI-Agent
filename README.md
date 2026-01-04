@@ -4,6 +4,18 @@
 
 ## 功能特性
 
+- **基于 LLM 的意图识别**：智能理解用户意图，支持多种开发场景
+  - 自动识别需求开发、需求查看、代码审查等意图
+  - 提取关键参数（URL、需求文本、环境等）
+  - 支持单系统和跨系统组合意图
+- **任务流模板系统**：可配置的多步骤任务流程
+  - 支持参数绑定和数据传递
+  - 条件分支执行（if_success、if_failure）
+  - 错误处理和重试机制
+- **任务编排器**：自动协调跨系统操作
+  - 浏览器 → IDE 数据流转
+  - 跨系统切换管理
+  - 执行报告和监控
 - 自然语言命令解析和意图识别
 - 基于 GLM-4V-Flash 的视觉 UI 元素定位
 - **窗口管理功能**：激活、切换窗口，支持多种 IDE
@@ -62,6 +74,47 @@ python -m src.main --workflow workflows/simple-example.md
 # 验证工作流（不执行）
 python -m src.main --workflow workflows/simple-example.md --dry-run
 ```
+
+## 意图识别和任务编排
+
+系统支持基于 LLM 的意图识别，可以自动理解用户意图并执行相应的任务流。
+
+### 支持的意图类型
+
+| 意图类型 | 描述 | 涉及系统 |
+|---------|------|---------|
+| `develop-feature` | 需求开发 | IDE |
+| `view-requirement` | 需求查看 | 浏览器 |
+| `requirement-to-development` | 需求查看并开发 | 浏览器 → IDE |
+| `analyze_requirements` | 分析需求 | 浏览器、IDE |
+| `design_solution` | 设计方案 | IDE |
+| `implement_feature` | 实现功能 | IDE |
+| `deploy_application` | 部署应用 | 终端 |
+| `test_code` | 测试代码 | 终端 |
+| `review_code` | 代码审查 | IDE |
+
+### 使用示例
+
+```bash
+# 查看需求详情（浏览器）
+python -m src.main "帮我查看 https://github.com/user/repo/issues/1 的需求详情"
+
+# 需求开发（IDE）
+python -m src.main "帮我开发一个购物车功能"
+
+# 查看需求并开发（跨系统）
+python -m src.main "查看这个需求 https://github.com/user/repo/issues/4 并实现它"
+```
+
+### 任务执行报告
+
+每次任务执行后会生成详细的执行报告，包括：
+- 执行状态（成功/失败）
+- 每个步骤的执行结果
+- 跨系统切换记录
+- 执行时长统计
+
+更多详情请参见 [INTENT.md](INTENT.md) 和 [TEMPLATE.md](TEMPLATE.md)。
 
 ## 支持的命令
 

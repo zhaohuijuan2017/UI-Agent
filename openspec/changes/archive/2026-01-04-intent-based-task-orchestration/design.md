@@ -99,7 +99,8 @@ intents:
     parameters:
       requirement_text:
         type: "string"
-        description: "需求文本内容"
+        description: "需求文本内容"\
+          
         required: true
         examples:
           - "用户登录需要支持微信扫码"

@@ -108,6 +108,7 @@ class ExecutionContext:
         Returns:
             执行摘要字典
         """
+
         total_steps = len(self.step_results)
         successful_steps = sum(1 for r in self.step_results if r.success)
         failed_steps = total_steps - successful_steps
@@ -121,3 +122,85 @@ class ExecutionContext:
             "total_duration": total_duration,
             "start_time": self.start_time.isoformat(),
         }
+
+    def get_detailed_report(self) -> dict[str, Any]:
+        """获取详细的执行报告。
+
+        Returns:
+            详细执行报告字典
+        """
+        from datetime import datetime
+
+        summary = self.get_execution_summary()
+
+        # 计算结束时间
+        end_time = datetime.now()
+        if summary["total_duration"] > 0:
+            end_time = datetime.fromtimestamp(
+                self.start_time.timestamp() + summary["total_duration"]
+            )
+
+        # 构建步骤详情
+        steps_details = []
+        for result in self.step_results:
+            step_detail = {
+                "step_index": result.step_index,
+                "success": result.success,
+                "duration": result.duration,
+                "output": result.output,
+                "error": result.error,
+            }
+            steps_details.append(step_detail)
+
+        return {
+            "summary": summary,
+            "start_time": summary["start_time"],
+            "end_time": end_time.isoformat(),
+            "steps": steps_details,
+            "shared_data": self.shared_data,
+        }
+
+    def format_report(self) -> str:
+        """格式化执行报告为可读文本。
+
+        Returns:
+            格式化的报告文本
+        """
+        report = self.get_detailed_report()
+
+        lines = [
+            "=" * 60,
+            "任务执行报告",
+            "=" * 60,
+            "",
+            "【执行摘要】",
+            f"  执行状态: {report['summary']['status']}",
+            f"  总步骤数: {report['summary']['total_steps']}",
+            f"  成功步骤: {report['summary']['successful_steps']}",
+            f"  失败步骤: {report['summary']['failed_steps']}",
+            f"  总耗时: {report['summary']['total_duration']:.2f}秒",
+            f"  开始时间: {report['start_time']}",
+            f"  结束时间: {report['end_time']}",
+            "",
+            "【步骤详情】",
+        ]
+
+        for step in report["steps"]:
+            status = "成功" if step["success"] else "失败"
+            lines.append(f"  步骤 {step['step_index']}: {status}")
+            lines.append(f"    耗时: {step['duration']:.2f}秒")
+            if step["output"]:
+                lines.append(f"    输出: {step['output']}")
+            if step["error"]:
+                lines.append(f"    错误: {step['error']}")
+            lines.append("")
+
+        if report["shared_data"]:
+            lines.append("【共享数据】")
+            for key, value in report["shared_data"].items():
+                lines.append(f"  {key}: {value}")
+            lines.append("")
+
+        lines.append("=" * 60)
+
+        return "\n".join(lines)
