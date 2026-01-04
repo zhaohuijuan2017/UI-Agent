@@ -30,7 +30,7 @@ automation:
   # 坐标校准偏移量 [x_offset, y_offset]
   # 用于校正视觉定位返回的坐标偏差
   # 例如：如果实际位置比视觉定位的位置偏右 36 像素、偏下 46 像素，则设置为 [36, 46]
-  coordinate_offset: [36, 46]
+  coordinate_offset: [0, 0]
 
 vision:
   # 是否启用基于大模型的视觉识别

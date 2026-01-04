@@ -9,6 +9,7 @@ steps:
     parameters:
       window: PyCharm
   - system: ide
+
     action: develop
     parameters:
       requirement: "{{intent.requirement_text}}"

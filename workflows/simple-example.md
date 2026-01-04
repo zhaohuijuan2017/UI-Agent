@@ -8,9 +8,4 @@ variables:
 # 简单示例工作流
 
 ## 步骤
-
-1. 打开浏览器访问 https://www.baidu.com
-
-2. 输入框中输入 python
-
-3. 点击 百度一下 按钮
+1. 双击 workflows 目录

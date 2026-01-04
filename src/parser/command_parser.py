@@ -105,13 +105,14 @@ class CommandParser:
             if not op:
                 continue
 
-            # 检查操作名称
-            if op.name.lower() in text_lower:
+            # 检查操作名称（使用词边界匹配）
+            # 使用正则表达式的 \b 确保完整单词匹配
+            if re.search(rf'\b{re.escape(op.name.lower())}\b', text_lower):
                 matches.append((op, len(op.name)))
 
-            # 检查别名
+            # 检查别名（使用词边界匹配）
             for alias in op.aliases:
-                if alias.lower() in text_lower:
+                if re.search(rf'\b{re.escape(alias.lower())}\b', text_lower):
                     matches.append((op, len(alias)))
 
         # 返回别名长度最长的匹配（更具体的匹配优先）

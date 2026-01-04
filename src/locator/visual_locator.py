@@ -392,11 +392,23 @@ class VisualLocator:
             for item in data if isinstance(data, list) else [data]:
                 bbox = item.get("bbox", [])
                 if len(bbox) >= 4:
+                    # 转换为整数元组
+                    bbox_tuple = (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
+
+                    # 检测并转换归一化坐标
+                    image_size = screenshot.size
+                    if self._is_normalized_coordinate(bbox_tuple, image_size):
+                        bbox_tuple = self._denormalize_bbox(bbox_tuple, image_size)
+                        print(
+                            f"[坐标] 检测到归一化坐标 {tuple(int(bbox[i]) for i in range(4))}, "
+                            f"已转换为实际坐标 {bbox_tuple}, 图像尺寸: {image_size}"
+                        )
+
                     elements.append(
                         UIElement(
                             element_type=item.get("element_type", "unknown"),
                             description=item.get("description", ""),
-                            bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+                            bbox=bbox_tuple,
                             confidence=float(item.get("confidence", 0.8)),
                         )
                     )
@@ -730,6 +742,70 @@ class VisualLocator:
 
         print(f"[混合定位] OCR 未找到，使用 GLM 结果")
         return glm_elements
+
+    @staticmethod
+    def _is_normalized_coordinate(
+        bbox: tuple[int, int, int, int],
+        image_size: tuple[int, int],
+    ) -> bool:
+        """判断是否为归一化坐标。
+
+        归一化坐标特征:
+        - 坐标值在0-1000范围内
+        - 最大坐标值明显小于图像尺寸
+
+        Args:
+            bbox: 边界框 (x1, y1, x2, y2)
+            image_size: 图像尺寸 (width, height)
+
+        Returns:
+            如果是归一化坐标返回True
+        """
+        max_coord = max(bbox)
+        min_image_dim = min(image_size)
+
+        # 规则1: 坐标值必须≤1000
+        if max_coord > 1000:
+            return False
+
+        # 规则2: 如果最大坐标值等于1000,很可能是归一化坐标
+        if max_coord == 1000:
+            return True
+
+        # 规则3: 对于小尺寸图像(小于1200),检查坐标是否接近图像尺寸
+        # 如果坐标值接近图像尺寸,应该是像素坐标
+        if min_image_dim < 1200:
+            # 如果最大坐标值 > 图像最小边的80%,认为是像素坐标
+            if max_coord > min_image_dim * 0.8:
+                return False
+
+        # 规则4: 对于大尺寸图像,如果所有坐标都≤1000且明显小于图像尺寸,是归一化坐标
+        return max_coord < min_image_dim
+
+    @staticmethod
+    def _denormalize_bbox(
+        bbox: tuple[int, int, int, int],
+        image_size: tuple[int, int],
+    ) -> tuple[int, int, int, int]:
+        """将归一化坐标转换为实际像素坐标。
+
+        Args:
+            bbox: 归一化边界框 (x1, y1, x2, y2), 范围0-1000
+            image_size: 图像尺寸 (width, height)
+
+        Returns:
+            实际像素边界框
+        """
+        x1, y1, x2, y2 = bbox
+        width, height = image_size
+
+        # 转换公式: 实际坐标 = (归一化坐标 / 1000) × 图像尺寸
+        actual_x1 = max(0, min(int((x1 / 1000.0) * width), width - 1))
+        actual_y1 = max(0, min(int((y1 / 1000.0) * height), height - 1))
+        actual_x2 = max(actual_x1 + 1, min(int((x2 / 1000.0) * width), width))
+        actual_y2 = max(actual_y1 + 1, min(int((y2 / 1000.0) * height), height))
+
+        return (actual_x1, actual_y1, actual_x2, actual_y2)
 
     def clear_cache(self) -> None:
         """清空定位缓存。"""
