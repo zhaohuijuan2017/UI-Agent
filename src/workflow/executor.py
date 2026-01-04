@@ -198,8 +198,9 @@ class WorkflowExecutor:
                     # 使用自然语言描述
                     command = step.description
 
-                # 执行命令（传递 template 参数）
-                result = self._ide.execute_command(command, template_name=template_name)
+                # 执行命令（传递 template 参数，并跳过意图识别）
+                # 工作流中的步骤都是低级操作，不需要意图识别
+                result = self._ide.execute_command(command, template_name=template_name, skip_intent_recognition=True)
 
                 duration = time.time() - start_time
 

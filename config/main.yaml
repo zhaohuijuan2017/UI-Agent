@@ -36,7 +36,7 @@ vision:
   # 是否启用基于大模型的视觉识别
   # - true: 使用智谱 AI 视觉模型进行 UI 定位（默认）
   # - false: 仅使用 OCR 进行定位，不调用大模型 API
-  enabled: false
+  enabled: true
 
 template_matching:
   # 模板图片存储目录（相对于项目根目录）

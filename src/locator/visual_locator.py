@@ -74,6 +74,7 @@ class VisualLocator:
         screenshot_capture: ScreenshotCapture | None = None,
         vision_enabled: bool = True,
         base_url: str | None = None,
+        monitor_index: int = 0,
     ) -> None:
         """初始化视觉定位器。
 
@@ -83,6 +84,11 @@ class VisualLocator:
             screenshot_capture: 截图捕获器（可选）
             vision_enabled: 是否启用大模型视觉识别（默认 True）
             base_url: LLM API Base URL（可选，用于自定义代理）
+            monitor_index: 默认显示器索引（默认 0 = 所有显示器合并）
+                - 0: 整个虚拟屏幕（所有显示器合并）
+                - 1: 第一个显示器
+                - 2: 第二个显示器
+                - 以此类推...
         """
         # 初始化 LLM 客户端（支持自定义 base_url）
         client_kwargs = {"api_key": api_key}
@@ -92,12 +98,33 @@ class VisualLocator:
         self.model = model
         self.screenshot_capture = screenshot_capture
         self._vision_enabled = vision_enabled
+        self._monitor_index = monitor_index
 
         # 定位结果缓存
         self._cache: dict[str, list[UIElement]] = {}
 
         # 坐标校准器
         self.calibrator = CoordinateCalibrator.from_config(None)  # 默认无偏移
+
+    def set_monitor_index(self, monitor_index: int) -> None:
+        """设置默认显示器索引。
+
+        Args:
+            monitor_index: 显示器索引
+                - 0: 整个虚拟屏幕（所有显示器合并）
+                - 1: 第一个显示器
+                - 2: 第二个显示器
+                - 以此类推...
+        """
+        self._monitor_index = monitor_index
+
+    def get_monitor_index(self) -> int:
+        """获取当前显示器索引。
+
+        Returns:
+            显示器索引
+        """
+        return self._monitor_index
 
     def set_coordinate_offset(self, offset: list[int] | None) -> None:
         """设置坐标偏移量。
@@ -114,6 +141,7 @@ class VisualLocator:
         use_cache: bool = True,
         target_filter: str | None = None,
         use_ocr_fallback: bool = True,
+        monitor_index: int | None = None,
     ) -> list[UIElement]:
         """在截图中定位 UI 元素。
 
@@ -123,13 +151,19 @@ class VisualLocator:
             use_cache: 是否使用缓存
             target_filter: 目标文件名/文本，用于过滤最匹配的元素
             use_ocr_fallback: 是否使用 OCR 混合定位（GLM + OCR）
+            monitor_index: 显示器索引（可选，覆盖默认值）
+                - 0: 整个虚拟屏幕（所有显示器合并）
+                - 1: 第一个显示器
+                - 2: 第二个显示器
+                - 以此类推...
 
         Returns:
             定位到的 UI 元素列表
         """
         # 如果没有提供截图，尝试捕获
         if screenshot is None and self.screenshot_capture:
-            screenshot = self.screenshot_capture.capture_fullscreen()
+            idx = monitor_index if monitor_index is not None else self._monitor_index
+            screenshot = self.screenshot_capture.capture_fullscreen(monitor_index=idx)
 
         if screenshot is None:
             return []
@@ -378,18 +412,21 @@ class VisualLocator:
         self,
         element: UIElement,
         screenshot: Image.Image | None = None,
+        monitor_index: int | None = None,
     ) -> bool:
         """验证元素位置。
 
         Args:
             element: UI 元素
             screenshot: 截图图像
+            monitor_index: 显示器索引（可选，覆盖默认值）
 
         Returns:
             是否验证通过
         """
         if screenshot is None and self.screenshot_capture:
-            screenshot = self.screenshot_capture.capture_fullscreen()
+            idx = monitor_index if monitor_index is not None else self._monitor_index
+            screenshot = self.screenshot_capture.capture_fullscreen(monitor_index=idx)
 
         if screenshot is None:
             return False

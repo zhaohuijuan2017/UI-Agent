@@ -6,6 +6,13 @@ from typing import Any
 
 from src.automation.actions import Action, ActionType
 from src.automation.executor import AutomationExecutor
+from src.browser.automation import BrowserAutomation
+from src.browser.browser_launcher import BrowserLauncher
+from src.browser.exceptions import (
+    BrowserLaunchError,
+    BrowserNotFoundError,
+    InvalidURLError,
+)
 from src.config.config_manager import ConfigManager
 from src.config.schema import MainConfig, OperationConfig
 from src.locator.screenshot import ScreenshotCapture
@@ -13,19 +20,12 @@ from src.locator.template_matcher import TemplateMatcher
 from src.locator.visual_locator import VisualLocator
 from src.models.result import ExecutionResult, ExecutionStatus
 from src.parser.command_parser import CommandParser
-from src.browser.browser_launcher import BrowserLauncher
-from src.browser.automation import BrowserAutomation
-from src.browser.exceptions import (
-    BrowserLaunchError,
-    BrowserNotFoundError,
-    InvalidURLError,
-)
 from src.window.exceptions import WindowActivationError, WindowNotFoundError
 from src.window.window_manager import WindowManager
+from src.workflow.exceptions import WorkflowError
 from src.workflow.executor import WorkflowExecutor
 from src.workflow.parser import WorkflowParser
 from src.workflow.validator import WorkflowValidator
-from src.workflow.exceptions import WorkflowError
 
 
 class IDEController:
@@ -113,11 +113,12 @@ class IDEController:
         # 尝试初始化意图识别模块
         try:
             from zhipuai import ZhipuAI
+
             from src.intent.recognizer import IntentRecognizer
-            from src.templates.loader import TemplateLoader
+            from src.orchestration.adapters import BrowserSystemAdapter, IDESystemAdapter
             from src.orchestration.executor import TaskExecutor
             from src.orchestration.orchestrator import TaskOrchestrator
-            from src.orchestration.adapters import BrowserSystemAdapter, IDESystemAdapter
+            from src.templates.loader import TemplateLoader
 
             # 初始化 LLM 客户端（支持自定义 base_url）
             llm_kwargs = {"api_key": api_key}
@@ -164,12 +165,13 @@ class IDEController:
         # 运行状态
         self._running = True
 
-    def execute_command(self, command: str, template_name: str | None = None) -> ExecutionResult:
+    def execute_command(self, command: str, template_name: str | None = None, skip_intent_recognition: bool = False) -> ExecutionResult:
         """执行自然语言命令。
 
         Args:
             command: 自然语言命令
             template_name: 模板图片文件名（可选）
+            skip_intent_recognition: 是否跳过意图识别，直接使用传统解析（用于工作流等场景）
 
         Returns:
             执行结果
@@ -177,8 +179,11 @@ class IDEController:
         start_time = time.time()
 
         try:
-            # 尝试使用意图识别
-            if self._intent_recognizer and self._task_orchestrator:
+            # 判断是否需要跳过意图识别
+            should_skip_intent = skip_intent_recognition or self._is_low_level_operation(command)
+
+            # 如果不跳过且意图识别器可用，尝试使用意图识别
+            if not should_skip_intent and self._intent_recognizer and self._task_orchestrator:
                 intent_result = self._intent_recognizer.recognize(command)
 
                 if intent_result.has_match:
@@ -187,7 +192,7 @@ class IDEController:
 
                     # 如果置信度低于阈值，请求用户确认
                     if intent_result.intent.confidence < 0.85:
-                        print(f"[意图识别] 置信度较低，请确认是否继续执行")
+                        print("[意图识别] 置信度较低，请确认是否继续执行")
                         # TODO: 添加用户确认逻辑
 
                     # 显示执行计划
@@ -591,6 +596,51 @@ class IDEController:
         """
         self._context[key] = value
 
+    def _is_low_level_operation(self, command: str) -> bool:
+        """判断是否是低级操作（应该走传统解析路径）。
+
+        判断策略：
+        1. 如果包含高级业务关键词 → 高级操作
+        2. 如果只包含低级UI关键词 → 低级操作
+        3. 都不包含 → 根据命令长度和特征判断
+
+        Args:
+            command: 命令文本
+
+        Returns:
+            是否是低级操作
+        """
+        # 高级业务关键词（优先级最高，包含这些词肯定不是低级操作）
+        high_level_keywords = [
+            "需求", "开发", "设计", "部署", "测试", "审查",
+            "功能", "实现", "分析", "方案", "代码", "提交",
+            "requirement", "develop", "design", "deploy", "feature",
+            "implement", "review", "commit"
+        ]
+
+        # 明确的低级UI操作关键词
+        low_level_keywords = [
+            "点击", "输入", "输入框", "打开", "访问", "激活", "切换",
+            "滚动", "等待", "关闭", "最小化", "最大化",
+            "button", "click", "input", "type", "open", "switch",
+            "scroll", "wait", "close"
+        ]
+
+        command_lower = command.lower()
+
+        # 优先检查：如果包含高级业务关键词，不是低级操作
+        for keyword in high_level_keywords:
+            if keyword in command_lower:
+                return False
+
+        # 其次检查：如果包含低级UI关键词，是低级操作
+        for keyword in low_level_keywords:
+            if keyword in command_lower:
+                return True
+
+        # 默认返回 False，让意图识别器去判断
+        return False
+
     def stop(self) -> None:
         """停止控制器。"""
         self._running = False
@@ -781,7 +831,7 @@ class IDEController:
                 return ExecutionResult(
                     status=ExecutionStatus.FAILED,
                     message="权限不足，无法激活窗口",
-                    error=f"目标应用可能以管理员权限运行。请以管理员身份运行此脚本，或关闭目标应用后以普通用户身份重新打开。",
+                    error="目标应用可能以管理员权限运行。请以管理员身份运行此脚本，或关闭目标应用后以普通用户身份重新打开。",
                 )
             return ExecutionResult(
                 status=ExecutionStatus.FAILED,
@@ -873,7 +923,7 @@ class IDEController:
         print(f"[调试] 使用窗口标题激活: {app_name}")
         try:
             return self.activate_window(app_name)
-        except Exception as e:
+        except Exception:
             # 返回友好的错误信息
             return ExecutionResult(
                 status=ExecutionStatus.FAILED,

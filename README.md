@@ -238,6 +238,38 @@ asyncio.run(browser_automation_example())
 | XPath | `xpath=//button[@type='submit']` | XPath 表达式 |
 | 坐标定位 | `coords=100,200` | 页面坐标位置 |
 
+## 多屏显示器支持
+
+系统支持在多显示器环境下指定使用特定显示器进行截图和 UI 定位。
+
+### 快速使用
+
+```python
+from src.locator.visual_locator import VisualLocator
+
+# 创建定位器时指定默认显示器（monitor_index=2 表示第二个显示器）
+locator = VisualLocator(
+    api_key="your_api_key",
+    screenshot_capture=capture,
+    monitor_index=2
+)
+
+# 动态切换显示器
+locator.set_monitor_index(1)
+
+# 定位时临时指定显示器
+elements = locator.locate("查找按钮", monitor_index=3)
+```
+
+### 显示器索引
+
+- **0**: 整个虚拟屏幕（所有显示器合并）- 默认
+- **1**: 第一个显示器
+- **2**: 第二个显示器
+- 以此类推...
+
+详细使用说明和配置选项请参考：[多屏显示器支持规范](openspec/specs/vision-config/spec.md#需求多屏显示器支持)
+
 ## 项目结构
 
 ```

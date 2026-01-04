@@ -30,18 +30,51 @@ class ScreenshotCapture:
         # mss 实例
         self._monitor = mss.mss()
 
-    def capture_fullscreen(self) -> Image.Image:
+    def get_monitors(self) -> list[dict]:
+        """获取所有可用的显示器信息。
+
+        Returns:
+            显示器信息列表，每个元素包含 monitor 的完整信息
+        """
+        return self._monitor.monitors
+
+    def capture_fullscreen(self, monitor_index: int = 0) -> Image.Image:
         """捕获全屏截图。
+
+        Args:
+            monitor_index: 显示器索引
+                - 0: 整个虚拟屏幕（所有显示器合并）
+                - 1: 第一个显示器
+                - 2: 第二个显示器
+                - 以此类推...
 
         Returns:
             截图图像对象
         """
-        monitor = self._monitor.monitors[0]  # 主显示器
+        monitors = self._monitor.monitors
+        if monitor_index < 0 or monitor_index >= len(monitors):
+            raise ValueError(f"显示器索引 {monitor_index} 超出范围，可用范围: 0-{len(monitors)-1}")
+
+        monitor = monitors[monitor_index]
         screenshot = self._monitor.grab(monitor)
 
         # 转换为 PIL Image
         img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
         return img
+
+    def capture_monitor(self, monitor_number: int) -> Image.Image:
+        """捕获指定显示器的截图。
+
+        Args:
+            monitor_number: 显示器编号（从 1 开始）
+                - 1: 第一个显示器
+                - 2: 第二个显示器
+                - 以此类推...
+
+        Returns:
+            截图图像对象
+        """
+        return self.capture_fullscreen(monitor_index=monitor_number)
 
     def capture_region(self, x: int, y: int, width: int, height: int) -> Image.Image:
         """捕获指定区域的截图。
